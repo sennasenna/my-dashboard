@@ -10,16 +10,18 @@
           <th class="border-b px-4 py-2 text-left font-medium text-gray-900 dark:text-gray-100 dark:border-gray-600">{{$t('bet_table.away_team')}}</th>
           <th class="border-b px-4 py-2 text-left font-medium text-gray-900 dark:text-gray-100 dark:border-gray-600">{{$t('bet_table.betcontent')}}</th>
           <th class="border-b px-4 py-2 text-left font-medium text-gray-900 dark:text-gray-100 dark:border-gray-600">{{$t('bet_table.bettime')}}</th>
+          <th class="border-b px-4 py-2 text-left font-medium text-gray-900 dark:text-gray-100 dark:border-gray-600">{{$t('bet_table.betresult')}}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="bet in bets" :key="bet.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.time }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ dayjs(bet.match_time).format("YYYY-MM-DD HH:mm") }}</td>
           <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.league }}</td>
-          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.home }}</td>
-          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.away }}</td>
-          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.bet }}</td>
-          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.bettime }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.home_team }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.away_team }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.bet_content }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ dayjs(bet.bet_time).format("YYYY-MM-DD HH") }}</td>
+          <td class="border-b px-4 py-2 dark:border-gray-600 dark:text-gray-100">{{ bet.result || '-'}}</td>
         </tr>
       </tbody>
     </table>
@@ -30,16 +32,29 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useModelStore } from '../store/modelStore'
 
+import { onMounted, ref, watch } from 'vue'
+import dayjs from 'dayjs'
+
+const bets = ref([])
 const props = defineProps({
-  sportType: {
-    type: String,
-    default: 'football'
+  fetchApi: {
+    type: Function,
+    required: true
+  },
+  apiParams: {
+    type: Object,
+    default: () => ({})
   }
 })
 
-const modelStore = useModelStore()
-const bets = computed(() => modelStore.bets[props.sportType])
+async function loadData() {
+  bets.value = await props.fetchApi(props.apiParams)
+}
+
+onMounted(loadData)
+
+// 如果参数变化，重新加载
+watch(() => props.apiParams, loadData, { deep: true })
+
 </script>

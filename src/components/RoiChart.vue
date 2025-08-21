@@ -4,34 +4,37 @@
 </template>
 
 <script setup>
-import * as echarts from 'echarts'
 import { onMounted, ref, watch } from 'vue'
-import { useModelStore } from '../store/modelStore'
+import * as echarts from 'echarts'
 
 const chart = ref(null)
 const myChart = ref(null) // 保存实例
-const modelStore = useModelStore()
 
 const props = defineProps({
-  sportType: {
-    type: String,
-    default: 'football'
+  fetchApi: {
+    type: Function,
+    required: true
+  },
+  apiParams: {
+    type: Object,
+    default: () => ({})
   }
 })
 
-const updateChart = () => {
-  if (!myChart.value) return
+
+async function updateChart(){
+  const roiData = await props.fetchApi(props.apiParams)
   myChart.value.setOption({
     xAxis: {
       type: 'category',
-      data: modelStore.roiData[props.sportType].map(item => item.invest)
+      data: roiData.map(item => item.cumulative_invest)
     },
     yAxis: {
       type: 'value'
     },
     series: [
       {
-        data: modelStore.roiData[props.sportType].map(item => item.value),
+        data: roiData.map(item => item.cumulative_profit),
         type: 'line',
         smooth: true,
         areaStyle: {}
@@ -45,12 +48,6 @@ onMounted(() => {
   updateChart()
 })
 
-// 监听 sportType 变化
-watch(
-  () => props.sportType,
-  () => {
-    updateChart()
-  }
-)
+watch(() => props.apiParams, updateChart, { deep: true })
 
 </script>

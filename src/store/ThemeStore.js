@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
-import { watch } from 'vue'
 
-export const useThemeStore = defineStore('theme', {
+export const ThemeStore = defineStore('ThemeStore', {
   state: () => ({
     dark: true,
   }),

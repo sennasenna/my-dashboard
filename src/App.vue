@@ -8,7 +8,7 @@
       <img src="/src/icon/orion2.png" alt="Logo" class="h-14 w-16 mr-3" />
 
       <!-- 多语言-->
-      <select v-model="currentLocale" @change="changeLanguage" class="fixed top-2 right-20 px-3 py-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+      <select v-model="currentLanguage" @change="changeLanguage($event.target.value)" class="fixed top-2 right-20 px-3 py-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         <option value="zh">中文</option>
         <option value="en">English</option>
       </select>
@@ -27,7 +27,6 @@
       </button>
 
     </header>
-
 
     <!-- 页面主体 -->
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
@@ -59,7 +58,8 @@
           <h2 class="text-xl font-semibold mb-4">
             {{ selectedSport === 'football' ? $t("football_roi") : $t("basketball_roi") }}
           </h2>
-          <RoiChart :sportType="selectedSport" />
+          <RoiChart :fetchApi="roi_chart_model.fetch_roi"
+                    :apiParams="{ bookmaker_id: 0, sport:selectedSport}"/>
         </section>
 
         <!-- 投注记录 -->
@@ -67,7 +67,17 @@
           <h2 class="text-xl font-semibold mb-4">
             {{ selectedSport === 'football' ? $t("football_comming_bets") : $t("basketball_comming_bets") }}
           </h2>
-          <BetsTable :sportType="selectedSport" />
+          <BetsTable :fetchApi="bets_table_model.fetch_bets"
+                     :apiParams="{ cut_time: now, type: 'comming', bookmaker_id: 0, sport:selectedSport}"/>
+        </section>
+
+        <!-- 投注记录 -->
+        <section class="p-4 rounded shadow bg-white dark:bg-gray-800">
+          <h2 class="text-xl font-semibold mb-4">
+            {{ selectedSport === 'football' ? $t("football_settled_bets") : $t("basketball_settled_bets") }}
+          </h2>
+          <BetsTable :fetchApi="bets_table_model.fetch_bets"
+                     :apiParams="{ cut_time: now, type: 'settled', bookmaker_id: '0', sport:selectedSport}"/>
         </section>
 
       </main>
@@ -75,12 +85,13 @@
     </div>
 
     <!--底部链接-->
-  <footer class="bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto">
+    <footer class="bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto">
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex justify-between items-center">
         <div class="flex-1"></div>
 
         <div class="flex gap-4 text-sm text-gray-600 dark:text-gray-300">
+
           <!-- QQ联系 -->
           <div class="flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
@@ -129,12 +140,11 @@
               Telegram
             </a>
           </div>
+
         </div>
-      </div>
-
 
       </div>
-
+    </div>
   </footer>
 
   </div>
@@ -142,38 +152,48 @@
 </template>
 
 <script setup>
-// Pinia 主题状态
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { useThemeStore } from './store/themeStore'
+import { ref, watch } from 'vue'
 
-import RoiChart from './components/RoiChart.vue'
-import BetsTable from './components/BetsTable.vue'
+/*  -- 主题状态 --  */
+import { ThemeStore } from './store/ThemeStore'
 
-const themeStore = useThemeStore()
+const themeStore = ThemeStore()
 themeStore.init()
 const toggleTheme = themeStore.toggle
 
+/* -- 语言切换 -- */
+import { useI18n } from 'vue-i18n'
+import { LanguageStore } from './store/LanguageStore'
+
+const currentLanguage = ref(localStorage.getItem('locale') || 'zh')
+const { locale } = useI18n()
+const language_store = LanguageStore()
+const changeLanguage = language_store.changeLanguage
+
+watch(
+  () => language_store.currentLocale,
+  (newLang) => {
+    locale.value = newLang
+  },
+  { immediate: true } // 页面加载时立即同步一次
+)
+
+
+/* -- 内容显示 -- */
 const selectedSport = ref('football') // 默认显示足球
 
+import RoiChart from './components/RoiChart.vue'
+import { RoiChartModel } from './store/RoiChartStore'
+const roi_chart_model = RoiChartModel()
 
-import { useI18n } from 'vue-i18n'
-const { t, locale, n, d, tc } = useI18n()
-const currentLocale = ref(locale.value)
 
-// 切换语言
-const changeLanguage = () => {
-  locale.value = currentLocale.value
-  // 保存到本地存储
-  localStorage.setItem('locale', currentLocale.value)
-}
+/*  --订单显示 -- */
+import BetsTable from './components/BetsTable.vue'
+import { BetsTableModel } from './store/BetsTableStore'
 
-const savedLocale = localStorage.getItem('locale')
-if (savedLocale) {
-  currentLocale.value = savedLocale
-  locale.value = savedLocale
-}
-
+import dayjs from 'dayjs'
+const now = dayjs().format('YYYY-MM-DD HH:mm')
+const bets_table_model = BetsTableModel()
 </script>
 
 <style>
